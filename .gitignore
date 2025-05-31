@@ -1,0 +1,12 @@
+venv/
+./venv
+django_backend/
+.node_modules/
+.env
+*/node_modules/
+*/.env
+*/.node_modules/
+*/.gitignore
+*/.gitignore
+*/.gitignore
+*/.gitignore
