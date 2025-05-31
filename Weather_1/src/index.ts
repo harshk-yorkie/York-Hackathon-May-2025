@@ -1,12 +1,12 @@
 import { fetchWeatherData } from './api';
+import { compareCities, sortData } from './utils';
 
-const cities = ['London', 'New York', 'Tokyo'];
-
-async function displayWeatherData() {
-  const data = await Promise.all(cities.map(city => fetchWeatherData(city)));
-
-  // Display the data in a table
-  // Implement the sorting and delta mode
+async function main() {
+  const cities = ['London', 'Paris', 'New York'];
+  const weatherData = await fetchWeatherData(cities);
+  const sortedData = sortData(weatherData);
+  const comparisonTable = compareCities(sortedData);
+  console.log(comparisonTable);
 }
 
-displayWeatherData();
+main();
