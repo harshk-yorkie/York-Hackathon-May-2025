@@ -1,10 +1,4 @@
-import { fetchWeatherData } from './api';
+import { WeatherForecast } from './WeatherForecast';
 
-const cities = ['London', 'New York', 'Tokyo'];
-
-async function displayWeatherData() {
-  const weatherData = await Promise.all(cities.map(city => fetchWeatherData(city)));
-  // Display the data in a table
-}
-
-displayWeatherData();
+const weatherForecast = new WeatherForecast();
+weatherForecast.init();

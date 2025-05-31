@@ -1,23 +1,14 @@
-# Weather Comparison Table
+# Weather Forecast
 
-This project is a comparison table allowing users to view weather metrics for 3+ cities simultaneously using OpenWeatherMap API data.
+A 5-day weather forecast component using OpenWeatherMap's forecast endpoint. Displays temperature trends and precipitation data.
 
 ## Installation
 
 1. Clone the repository
-2. Install dependencies with `npm install`
-3. Run the project with `npm start`
+2. Run `npm install`
+3. Run `npm start` to start the application
+4. Visit `http://localhost:3000` in your browser
 
 ## Testing
 
-Run tests with `npm test`
-
-## Features
-
-- Displays 3+ cities' data within 15 seconds
-- All columns show real API data (no mock values)
-- Maintains sort state during data refreshes
-- Clear visual differentiation between cities
-- Empty state when no cities selected
-- "Delta" mode showing differences from first city
-- Mini sparkline graphs for temp trends
+Run `npm test` to run the tests.
