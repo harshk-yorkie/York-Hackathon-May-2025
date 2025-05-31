@@ -1,19 +1,14 @@
-# Weather Widget
+# Weather Comparison
 
-This widget detects the user’s location (GPS/IP) and displays real-time weather data from OpenWeatherMap’s current API.
-
-## Features
-
-- Auto-fetches weather data using location access.
-- Displays temperature, humidity, wind speed, and weather icon.
-- Allows manual input if GPS/IP location fails.
-- Shows a loading state while fetching data.
-- Allows toggling units (°C/°F, km/h/mph) which persist via localStorage.
-- Displays animated weather icons.
-- Provides contextual tips based on the weather (e.g., "Rainy → Don't forget your umbrella!", "Sunny → High UV today, wear sunscreen!").
+This project allows users to view weather metrics for 3+ cities simultaneously using OpenWeatherMap API data.
 
 ## Installation
 
-1. Clone this repository.
-2. Run `npm install`.
-3. Open `public/index.html` in your browser.
+1. Clone the repository
+2. Run `npm install` to install dependencies
+3. Replace 'your_openweathermap_api_key' in `src/api.ts` with your actual OpenWeatherMap API key
+4. Run `npm start` to start the application
+
+## Testing
+
+Run `npm test` to run the tests.

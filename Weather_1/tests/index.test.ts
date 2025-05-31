@@ -1,1 +1,1 @@
-// Test suite for index.ts
+// Implement tests for the main functionality

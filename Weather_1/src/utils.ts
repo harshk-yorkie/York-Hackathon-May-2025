@@ -1,1 +1,1 @@
-// Utility functions for fetching weather data, handling unit conversions, etc.
+// Implement utility functions for sorting and calculating delta
