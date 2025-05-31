@@ -2,7 +2,7 @@ import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 import { execSync } from "child_process";
-import { fetch } from 'undici';
+import { fetch } from "undici";
 import simpleGit from "simple-git";
 import OpenAI from "openai";
 import fs from "fs";
@@ -41,19 +41,23 @@ app.get("/atlassian-verify", async (req, res) => {
         client_secret: clientSecret,
         code,
         redirect_uri: redirectUri,
-      }, {
-      headers: {
-        "Content-Type": "application/json"
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
-    }
     );
 
     const accessToken = tokenRes.data.access_token;
 
     // Get cloud ID
-    const identityRes = await axios.get('https://api.atlassian.com/oauth/token/accessible-resources', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const identityRes = await axios.get(
+      "https://api.atlassian.com/oauth/token/accessible-resources",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
 
     const cloudId = identityRes.data[0].id;
 
@@ -71,54 +75,28 @@ app.get("/atlassian-verify", async (req, res) => {
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
-    const descriptionContent = issuesRes.data.issues[0]['fields']['description']['content'];
     // Extract issues
     let issues = issuesRes.data.issues;
-    issues.sort((a: { key: string; }, b: { key: string; }) => {
-      const numA = parseInt(a.key.split('-')[1]);
-      const numB = parseInt(b.key.split('-')[1]);
+    issues.sort((a: { key: string }, b: { key: string }) => {
+      const numA = parseInt(a.key.split("-")[1]);
+      const numB = parseInt(b.key.split("-")[1]);
       return numA - numB;
     });
 
-    const branchName = `feature/${projectName.split(" ").join('_').toLowerCase()}`;
-    const baseDir = path.join(__dirname, "..", projectName.split(" ").join('_'));
-    const git = simpleGit(baseDir);
+    solveIssues({
+      projectName,
+      accessToken,
+      cloudId,
+      issues,
+    });
 
-    const localBranches = await git.branchLocal();
-    if (!localBranches.all.includes(branchName)) {
-      await git.checkoutLocalBranch(branchName);
-    } else {
-      await git.checkout(branchName);
-    }
-    for (const issue of issues) {
-      try {
-        const key = issue.key;
-        const id = issue.id;
-
-        const prompt = extractPlainTextFromADF(issue.fields.description);
-        ensureProjectSetup(baseDir);
-
-        const transitions = await getTransitions(id, cloudId, accessToken);
-        if (transitions) await moveToInProgress(id, cloudId, accessToken);
-
-        const llmOutput = await getCodeFromPrompt(prompt);
-        const fileMap = parseFilesFromLLMResponse(llmOutput);
-        writeFilesToDisk(fileMap, baseDir);
-        // await validateAndFixCode(baseDir, prompt);
-        await gitCommitAndPush.commitOnly(baseDir, `Implement ${key}: ${issue.fields.summary}`);
-
-        const transitions2 = await getTransitions(id, cloudId, accessToken);
-        const done = transitions2.find((t: { name: string }) => t.name === "Done");
-        if (done) await transitionJiraIssue(id, done.id, cloudId, accessToken);
-
-        console.log(`✅ Task ${key} completed.\n`);
-      } catch (err) {
-        console.error(`❌ Failed to process issue ${issue.key}:`, err);
-      }
-    }
-    // 6. Final push after all tasks
-    await gitCommitAndPush.pushOnly(baseDir, branchName);
-
+    res.send(`
+      <h1>Connected to Atlassian</h1>
+      <p>Project: ${projectName}</p>
+      <p>Issues found: ${issues.length}</p>
+      <p>Your issues are being processed...</p>
+      <p>Check the console for updates.</p>
+    `);
   } catch (err) {
     res.status(500).send(err);
   }
@@ -129,37 +107,37 @@ app.listen(PORT, () => {
 });
 
 function extractPlainTextFromADF(adf: any) {
-  let result = '';
+  let result = "";
 
-  function walk(node: { type: any; content: any[]; text: any; }) {
+  function walk(node: { type: any; content: any[]; text: any }) {
     if (!node) return;
 
     switch (node.type) {
-      case 'paragraph':
+      case "paragraph":
         if (node.content) {
-          result += getTextFromContentArray(node.content) + '\n';
+          result += getTextFromContentArray(node.content) + "\n";
         }
         break;
 
-      case 'bulletList':
-      case 'orderedList':
+      case "bulletList":
+      case "orderedList":
         if (node.content) {
-          node.content.forEach(item => {
-            if (item.type === 'listItem' && item.content) {
+          node.content.forEach((item) => {
+            if (item.type === "listItem" && item.content) {
               item.content.forEach(walk); // Recurse into paragraph inside listItem
             }
           });
         }
         break;
 
-      case 'heading':
+      case "heading":
         if (node.content) {
-          result += getTextFromContentArray(node.content).toUpperCase() + '\n';
+          result += getTextFromContentArray(node.content).toUpperCase() + "\n";
         }
         break;
 
-      case 'text':
-        result += node.text || '';
+      case "text":
+        result += node.text || "";
         break;
 
       default:
@@ -172,14 +150,15 @@ function extractPlainTextFromADF(adf: any) {
 
   function getTextFromContentArray(contentArray: any[]) {
     return contentArray
-      .map((c: { type: string; text: any; }) => (c.type === 'text' ? c.text : ''))
-      .join('');
+      .map((c: { type: string; text: any }) =>
+        c.type === "text" ? c.text : ""
+      )
+      .join("");
   }
 
   walk(adf);
   return result.trim();
 }
-
 
 function parseFilesFromLLMResponse(llmOutput: string): Record<string, string> {
   const fileRegex = /\[FILE: (.*?)\]\n([\s\S]*?)(?=\[FILE:|\n*$)/g;
@@ -192,7 +171,10 @@ function parseFilesFromLLMResponse(llmOutput: string): Record<string, string> {
 
     // Strip code block markers if present
     if (fileContent.startsWith("```")) {
-      fileContent = fileContent.replace(/^```[a-z]*\n?/, "").replace(/```$/, "").trim();
+      fileContent = fileContent
+        .replace(/^```[a-z]*\n?/, "")
+        .replace(/```$/, "")
+        .trim();
     }
 
     files[filePath] = fileContent;
@@ -204,7 +186,6 @@ function parseFilesFromLLMResponse(llmOutput: string): Record<string, string> {
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
-
 
 async function getCodeFromPrompt(prompt: string) {
   const systemMessage = `
@@ -259,8 +240,11 @@ async function getCodeFromPrompt(prompt: string) {
   return completion.choices[0].message?.content || "";
 }
 
-
-async function moveToInProgress(issueId: string, cloudId: any, accessToken: any) {
+async function moveToInProgress(
+  issueId: string,
+  cloudId: any,
+  accessToken: any
+) {
   try {
     const transitions = await getTransitions(issueId, cloudId, accessToken);
 
@@ -276,20 +260,27 @@ async function moveToInProgress(issueId: string, cloudId: any, accessToken: any)
   }
 }
 
-async function getTransitions(issueId: string, cloudId: string, accessToken: string) {
+async function getTransitions(
+  issueId: string,
+  cloudId: string,
+  accessToken: string
+) {
   try {
     const response = await axios.get(
       `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/issue/${issueId}/transitions`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json"
-        }
+          Accept: "application/json",
+        },
       }
     );
     return response.data.transitions;
   } catch (error: any) {
-    console.error("Error getting transitions:", error.response?.data || error.message);
+    console.error(
+      "Error getting transitions:",
+      error.response?.data || error.message
+    );
     return null;
   }
 }
@@ -297,15 +288,22 @@ async function getTransitions(issueId: string, cloudId: string, accessToken: str
 function ensureProjectSetup(projectPath: string) {
   if (!fs.existsSync(projectPath)) {
     fs.mkdirSync(path.join(projectPath, "src"), { recursive: true });
-    fs.writeFileSync(path.join(projectPath, "README.md"), "# Project Initialized");
+    fs.writeFileSync(
+      path.join(projectPath, "README.md"),
+      "# Project Initialized"
+    );
     console.log(`✅ Created base project at ${projectPath}`);
   } else {
     console.log(`📦 Project exists at ${projectPath}`);
   }
 }
 
-
-async function transitionJiraIssue(issueId: string, statusId: string, cloudId: string, accessToken: string) {
+async function transitionJiraIssue(
+  issueId: string,
+  statusId: string,
+  cloudId: string,
+  accessToken: string
+) {
   await axios.post(
     `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/issue/${issueId}/transitions`,
     {
@@ -326,7 +324,7 @@ const gitCommitAndPush = {
     }
 
     const remotes = await git.getRemotes(true);
-    if (!remotes.find(r => r.name === "origin")) {
+    if (!remotes.find((r) => r.name === "origin")) {
       const remoteUrl = process.env.GIT_REMOTE_URL;
       if (!remoteUrl) throw new Error("❌ GIT_REMOTE_URL is not set.");
       await git.addRemote("origin", remoteUrl);
@@ -376,10 +374,13 @@ const gitCommitAndPush = {
         throw e;
       }
     }
-  }
+  },
 };
 
-function writeFilesToDisk(fileMap: Record<string, string>, baseDir: string = "generated") {
+function writeFilesToDisk(
+  fileMap: Record<string, string>,
+  baseDir: string = "generated"
+) {
   const packageJsonPath = path.join(baseDir, "package.json");
   let pkg: any = {};
 
@@ -402,7 +403,8 @@ function writeFilesToDisk(fileMap: Record<string, string>, baseDir: string = "ge
     console.log(`✅ Created ${fullPath}`);
 
     // Scan for imports
-    const importRegex = /(?:import .* from ['"]|require\(['"])([a-zA-Z0-9@/_-]+)['"]/g;
+    const importRegex =
+      /(?:import .* from ['"]|require\(['"])([a-zA-Z0-9@/_-]+)['"]/g;
     let match: any;
     while ((match = importRegex.exec(content)) !== null) {
       const pkgName = match[1].split("/")[0]; // handle scoped packages and subpaths
@@ -438,4 +440,63 @@ function writeFilesToDisk(fileMap: Record<string, string>, baseDir: string = "ge
 function isBuiltInModule(pkgName: string): boolean {
   const builtIns = new Set(require("module").builtinModules);
   return builtIns.has(pkgName);
+}
+
+async function solveIssues({
+  projectName,
+  issues,
+  accessToken,
+  cloudId,
+}: {
+  projectName: string;
+  issues: any[];
+  cloudId: string;
+  accessToken: string;
+}) {
+  const branchName = `feature/${projectName
+    .split(" ")
+    .join("_")
+    .toLowerCase()}`;
+  const baseDir = path.join(__dirname, "..", projectName.split(" ").join("_"));
+  const git = simpleGit(baseDir);
+
+  const localBranches = await git.branchLocal();
+  if (!localBranches.all.includes(branchName)) {
+    await git.checkoutLocalBranch(branchName);
+  } else {
+    await git.checkout(branchName);
+  }
+  for (const issue of issues) {
+    try {
+      const key = issue.key;
+      const id = issue.id;
+
+      const prompt = extractPlainTextFromADF(issue.fields.description);
+      ensureProjectSetup(baseDir);
+
+      const transitions = await getTransitions(id, cloudId, accessToken);
+      if (transitions) await moveToInProgress(id, cloudId, accessToken);
+
+      const llmOutput = await getCodeFromPrompt(prompt);
+      const fileMap = parseFilesFromLLMResponse(llmOutput);
+      writeFilesToDisk(fileMap, baseDir);
+      // await validateAndFixCode(baseDir, prompt);
+      await gitCommitAndPush.commitOnly(
+        baseDir,
+        `Implement ${key}: ${issue.fields.summary}`
+      );
+
+      const transitions2 = await getTransitions(id, cloudId, accessToken);
+      const done = transitions2.find(
+        (t: { name: string }) => t.name === "Done"
+      );
+      if (done) await transitionJiraIssue(id, done.id, cloudId, accessToken);
+
+      console.log(`✅ Task ${key} completed.\n`);
+    } catch (err) {
+      console.error(`❌ Failed to process issue ${issue.key}:`, err);
+    }
+  }
+  // 6. Final push after all tasks
+  await gitCommitAndPush.pushOnly(baseDir, branchName);
 }
