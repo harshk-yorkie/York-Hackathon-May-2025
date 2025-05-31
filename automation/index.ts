@@ -8,7 +8,7 @@ const app = express();
 const PORT = 3000;
 
 const clientId = process.env.ATLASSIAN_CLIENT_ID!;
-const clientSecret = process.env.ATLASSIAN_CLIENT_SECRET!;
+const clientSecret = process.env.ATLASSIAN_SECRET!;
 const redirectUri = process.env.ATLASSIAN_REDIRECT_URI!;
 const scopes = "read:jira-work read:jira-user";
 
@@ -24,11 +24,6 @@ app.get("/", (_req, res) => {
 app.get("/atlassian-verify", async (req, res) => {
   const code = req.query.code as string;
 
-  //   console.log("req", JSON.stringify(req, null, 2));
-  //   console.log("res", JSON.stringify(res, null, 2));
-  console.log("code", code);
-  
-
   try {
     // Exchange code for access token
     const tokenRes = await axios.post(
@@ -40,36 +35,36 @@ app.get("/atlassian-verify", async (req, res) => {
         code,
         redirect_uri: redirectUri,
       }, {
-        headers: {
-            "Content-Type": "application/json"
-        }
+      headers: {
+        "Content-Type": "application/json"
       }
+    }
     );
 
     const accessToken = tokenRes.data.access_token;
 
-    res.json({ accessToken });
+    // Get cloud ID
+    const identityRes = await axios.get('https://api.atlassian.com/oauth/token/accessible-resources', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-    // // Get cloud ID
-    // const identityRes = await axios.get('https://api.atlassian.com/oauth/token/accessible-resources', {
-    //   headers: { Authorization: `Bearer ${accessToken}` },
-    // });
+    const cloudId = identityRes.data[0].id;
 
-    // const cloudId = identityRes.data[0].id;
-
-    // // Fetch all Jira projects
-    // const projectsRes = await axios.get(
-    //   `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/project/search`,
-    //   { headers: { Authorization: `Bearer ${accessToken}` } }
-    // );
+    // Fetch all Jira projects
+    const projectsRes = await axios.get(
+      `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/project/search`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
 
     // // Fetch all Jira issues
-    // const issuesRes = await axios.get(
-    //   `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/search`,
-    //   { headers: { Authorization: `Bearer ${accessToken}` } }
-    // );
+    const issuesRes = await axios.get(
+      `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/search`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    const descriptionContent = issuesRes.data.issues[0]['fields']['description']['content'];
+    // console.log(issuesRes.data.issues[0]['fields']['description']['content']);
   } catch (err) {
-    console.error(err);
     res.status(500).send("OAuth failed");
   }
 });
