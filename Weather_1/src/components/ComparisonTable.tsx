@@ -1,1 +1,0 @@
-// React component for the comparison table goes here
