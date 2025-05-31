@@ -1,4 +1,13 @@
-import { WeatherForecast } from './WeatherForecast';
+import express from 'express';
+import routes from './routes';
 
-const weatherForecast = new WeatherForecast();
-weatherForecast.init();
+const app = express();
+
+app.use(express.json());
+app.use('/', routes);
+
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
+});
+
+export default app;
