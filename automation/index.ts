@@ -1,12 +1,13 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
-
+import { execSync } from "child_process";
 import { fetch } from 'undici';
 import simpleGit from "simple-git";
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
+
 globalThis.fetch = fetch as any;
 dotenv.config();
 
@@ -81,6 +82,14 @@ app.get("/atlassian-verify", async (req, res) => {
 
     const branchName = `feature/${projectName.split(" ").join('_').toLowerCase()}`;
     const baseDir = path.join(__dirname, "..", projectName.split(" ").join('_'));
+    const git = simpleGit(baseDir);
+
+    const localBranches = await git.branchLocal();
+    if (!localBranches.all.includes(branchName)) {
+      await git.checkoutLocalBranch(branchName);
+    } else {
+      await git.checkout(branchName);
+    }
     for (const issue of issues) {
       try {
         const key = issue.key;
@@ -95,7 +104,7 @@ app.get("/atlassian-verify", async (req, res) => {
         const llmOutput = await getCodeFromPrompt(prompt);
         const fileMap = parseFilesFromLLMResponse(llmOutput);
         writeFilesToDisk(fileMap, baseDir);
-
+        // await validateAndFixCode(baseDir, prompt);
         await gitCommitAndPush.commitOnly(baseDir, `Implement ${key}: ${issue.fields.summary}`);
 
         const transitions2 = await getTransitions(id, cloudId, accessToken);
@@ -107,7 +116,6 @@ app.get("/atlassian-verify", async (req, res) => {
         console.error(`❌ Failed to process issue ${issue.key}:`, err);
       }
     }
-
     // 6. Final push after all tasks
     await gitCommitAndPush.pushOnly(baseDir, branchName);
 
@@ -193,20 +201,6 @@ function parseFilesFromLLMResponse(llmOutput: string): Record<string, string> {
   return files;
 }
 
-
-function writeFilesToDisk(fileMap: Record<string, string>, baseDir: string = "generated") {
-  for (const [relativePath, content] of Object.entries(fileMap)) {
-    const fullPath = path.join(baseDir, relativePath);
-
-    // Ensure directory exists
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-
-    // Write file
-    fs.writeFileSync(fullPath, content, "utf8");
-    console.log(`✅ Created ${fullPath}`);
-  }
-}
-
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
@@ -214,52 +208,44 @@ const openai = new OpenAI({
 
 async function getCodeFromPrompt(prompt: string) {
   const systemMessage = `
-  You are a senior software engineer assistant. Given a task:
-  
-  - Analyze the requirements.
-  - Propose folder structure.
-  - Generate production-ready code with proper linting.
-  - Include a test suite with 80%+ coverage.
-  - Use correct file extensions (.ts, .js, .py).
-  - Respond with Git commit message, PR title/desc, and QA checklist.
-  
-  Respond in this format:
-  \`\`\`
-  [FOLDER STRUCTURE]
-  /project-root
-    /src
-      index.ts
-      routes.ts
-    /tests
-      index.test.ts
-    package.json
-    README.md
-  
-  [FILE: /src/index.ts]
-  <code>
-  
-  [FILE: /tests/index.test.ts]
-  <code>
-  
-  [GIT]
-  Branch: feature/DEV-123-auth
-  Commit: Add auth routes and validation
-  PR Title: [DEV-123] Add user authentication
-  PR Description:
-  - Adds login/signup
-  - Validates payloads
-  - Links to Jira: https://jira.example.com/browse/DEV-123
-  
-  [JIRA QA]
-  1. Call POST /login with valid creds
-  2. Validate JWT returned
-  Peer Checklist:
-  - Code linted
-  - Error handling tested
-  - Input validation
-  - Coverage ≥ 80%
-  \`\`\`
-  `;
+      You are a helpful software engineer assistant. You will receive a software task description and terminal errors (if any).
+      - Analyze the requirements and errors.
+      - Identify or fix key components.
+      - Propose a project folder structure.
+      - Generate realistic starter files (e.g., index.ts, routes.ts, README.md, tests, configs).
+      - Ensure the code passes TypeScript, ESLint, and unit tests.
+      - If terminal errors are provided, fix the code accordingly.
+
+      Respond in this format:
+      \`\`\`
+      [FOLDER STRUCTURE]
+
+      /project-root
+        /src
+          index.ts
+          routes.ts
+        /tests
+          index.test.ts
+        tsconfig.json
+        package.json
+        README.md
+
+      [FILE: /src/index.ts]
+      <insert code here>
+
+      [FILE: /tests/index.test.ts]
+      <insert code here>
+
+      [FILE: /tsconfig.json]
+      <insert code here>
+
+      [FILE: /package.json]
+      <insert code here>
+
+      [FILE: /README.md]
+      <insert code here>
+      \`\`\`
+      `;
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4",
@@ -348,20 +334,26 @@ const gitCommitAndPush = {
     }
 
     await git.fetch();
-    try {
+
+    const localBranches = await git.branchLocal();
+    const branchExists = localBranches.all.includes(branchName);
+
+    if (branchExists) {
       await git.checkout(branchName);
-    } catch {
+      console.log(`🔀 Switched to existing branch: ${branchName}`);
+    } else {
       await git.checkoutLocalBranch(branchName);
+      console.log(`🌿 Created and checked out new branch: ${branchName}`);
     }
   },
 
   async commitOnly(projectDir: string, message: string) {
     const git = simpleGit(projectDir);
     await git.add(".");
-    const status = await git.status();
 
+    const status = await git.status();
     if (status.files.length === 0) {
-      console.log("🟢 No changes to commit.");
+      console.log("🟢 No file changes to commit.");
       return;
     }
 
@@ -373,17 +365,77 @@ const gitCommitAndPush = {
     const git = simpleGit(projectDir);
     try {
       await git.push("origin", branchName);
-    } catch {
-      console.log("🟡 Push failed, retrying with upstream setup...");
-      await git.raw([
-        "push",
-        "--set-upstream",
-        "origin",
-        branchName,
-        "--verbose",
-        "--porcelain"
-      ]);
+      console.log(`🚀 Pushed to origin/${branchName}`);
+    } catch (error) {
+      console.log("🟡 Initial push failed, retrying with --set-upstream...");
+      try {
+        await git.push(["--set-upstream", "origin", branchName]);
+        console.log(`🚀 Pushed to origin/${branchName} (with upstream)`);
+      } catch (e: any) {
+        console.error("❌ Push with upstream failed:", e.message || e);
+        throw e;
+      }
     }
-    console.log(`🚀 Pushed to origin/${branchName}`);
   }
 };
+
+function writeFilesToDisk(fileMap: Record<string, string>, baseDir: string = "generated") {
+  const packageJsonPath = path.join(baseDir, "package.json");
+  let pkg: any = {};
+
+  if (fs.existsSync(packageJsonPath)) {
+    pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+    pkg.dependencies ??= {};
+    pkg.devDependencies ??= {};
+  }
+
+  const dependenciesToInstall = new Set<string>();
+
+  for (const [relativePath, content] of Object.entries(fileMap)) {
+    const fullPath = path.join(baseDir, relativePath);
+
+    // Ensure directory exists
+    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+
+    // Write file
+    fs.writeFileSync(fullPath, content, "utf8");
+    console.log(`✅ Created ${fullPath}`);
+
+    // Scan for imports
+    const importRegex = /(?:import .* from ['"]|require\(['"])([a-zA-Z0-9@/_-]+)['"]/g;
+    let match: any;
+    while ((match = importRegex.exec(content)) !== null) {
+      const pkgName = match[1].split("/")[0]; // handle scoped packages and subpaths
+      if (
+        !pkg.dependencies[pkgName] &&
+        !pkg.devDependencies[pkgName] &&
+        !isBuiltInModule(pkgName)
+      ) {
+        dependenciesToInstall.add(pkgName);
+      }
+    }
+  }
+
+  // Update package.json if needed
+  if (dependenciesToInstall.size > 0) {
+    for (const dep of dependenciesToInstall) {
+      pkg.dependencies[dep] = "*";
+    }
+
+    fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2));
+    console.log("📦 Updated package.json with new dependencies.");
+
+    // Install new dependencies
+    try {
+      execSync(`npm install`, { cwd: baseDir, stdio: "inherit" });
+      console.log("📥 Installed missing dependencies.");
+    } catch (err) {
+      console.error("⚠️ Error installing dependencies:", err);
+    }
+  }
+}
+
+function isBuiltInModule(pkgName: string): boolean {
+  const builtIns = new Set(require("module").builtinModules);
+  return builtIns.has(pkgName);
+}
