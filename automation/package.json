@@ -2,7 +2,6 @@
   "name": "atlassian-oauth",
   "version": "1.0.0",
   "main": "dist/index.js",
-  "type": "module",
   "scripts": {
     "dev": "nodemon --watch './**/*.ts' --ignore 'dist' --exec ts-node index.ts",
     "build": "tsc",
@@ -12,8 +11,9 @@
     "axios": "^1.9.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "node-fetch": "^3.3.2",
-    "openai": "^5.0.1"
+    "openai": "^5.0.1",
+    "simple-git": "^3.27.0",
+    "undici": "^7.10.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.2",

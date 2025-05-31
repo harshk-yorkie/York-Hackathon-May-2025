@@ -2,11 +2,12 @@ import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 
-import nodeFetch from 'node-fetch';
+import { fetch } from 'undici';
+import simpleGit from "simple-git";
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
-(globalThis as any).fetch = nodeFetch as unknown as typeof fetch;
+globalThis.fetch = fetch as any;
 dotenv.config();
 
 const app = express();
@@ -75,7 +76,7 @@ app.get("/atlassian-verify", async (req, res) => {
       const numB = parseInt(b.key.split('-')[1]);
       return numA - numB;
     });
- 
+
     //   // Example output
     //   issues.forEach((issue: { key: any; id: any; fields: { description: any; }; }) => {
     //     const key = issue.key;
@@ -99,20 +100,37 @@ app.get("/atlassian-verify", async (req, res) => {
     for (const issue of issues) {
       const key = issue.key;
       const id = issue.id;
-      const description = issue.fields.description;
+      const prompt = extractPlainTextFromADF(issue.fields.description);
+      const branchName = `feature/${key.toLowerCase()}`;
 
-      if (!description?.content) continue;
+      const baseDir = path.join("generated", key);
+      ensureProjectSetup(baseDir);
 
-      const prompt = extractPlainTextFromADF(description);
+      // Move to "In Progress"
+      // const transitions = await getTransitions(id, cloudId, accessToken);
+      // if (transitions) {
+      //   await moveToInProgress(id, cloudId, accessToken);
+      // } else {
+      //   console.log("bjkdsbfkbs");
+      // }
+      // Generate code with LLM
+      const llmOutput = await getCodeFromPrompt(prompt);
+      const fileMap = parseFilesFromLLMResponse(llmOutput);
+      writeFilesToDisk(fileMap, baseDir);
 
-      console.log(`🔁 Processing ${key}...`);
-      const llmResponse = await getCodeFromPrompt(prompt);
-      const files = parseFilesFromLLMResponse(llmResponse);
-      writeFilesToDisk(files, `generated/${key}`);
+      // Git push
+      await gitCommitAndPush(baseDir, branchName, `Implement ${key}: ${issue.fields.summary}`);
+
+      // Move to "Done"
+      const transitions2 = await getTransitions(id, cloudId, accessToken);
+      const done = transitions2.find((t: { name: string; }) => t.name === "Done");
+      if (done) await transitionJiraIssue(id, done.id, cloudId, accessToken);
+
+      console.log(`✅ Task ${key} completed.\n`);
     }
 
   } catch (err) {
-    res.status(500).send("OAuth failed");
+    res.status(500).send(err);
   }
 });
 
@@ -251,4 +269,78 @@ Respond in this format:
   });
 
   return completion.choices[0].message?.content || "";
+}
+
+
+async function moveToInProgress(issueId: string, cloudId: any, accessToken: any) {
+  try {
+    const transitions = await getTransitions(issueId, cloudId, accessToken);
+    console.log("move transition", transitions);
+
+    const inProgress = transitions.find(
+      (t: any) => t.name?.toLowerCase() === "in progress"
+    );
+    console.log("move transition in", inProgress.id);
+
+    if (inProgress) {
+      console.log("move transition in if cond", inProgress);
+      await transitionJiraIssue(issueId, inProgress.id, cloudId, accessToken);
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+async function getTransitions(issueId: string, cloudId: string, accessToken: string) {
+  try {
+    const response = await axios.get(
+      `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/issue/${issueId}/transitions`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json"
+        }
+      }
+    );
+    return response.data.transitions;
+  } catch (error: any) {
+    console.error("Error getting transitions:", error.response?.data || error.message);
+    return null;
+  }
+}
+
+function ensureProjectSetup(projectPath: string) {
+  if (!fs.existsSync(projectPath)) {
+    fs.mkdirSync(`${projectPath}/src`, { recursive: true });
+    fs.writeFileSync(`${projectPath}/README.md`, "# Project Initialized");
+    console.log(`✅ Created base project at ${projectPath}`);
+  } else {
+    console.log(`📦 Project exists at ${projectPath}`);
+  }
+}
+
+
+async function transitionJiraIssue(issueId: string, statusId: string, cloudId: string, accessToken: string) {
+  await axios.post(
+    `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/issue/${issueId}/transitions`,
+    {
+      transition: { id: statusId }, // e.g., "31" for "In Progress", "41" for "Done"
+    },
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+}
+
+async function gitCommitAndPush(projectDir: string, branchName: string, message: string) {
+  const git = simpleGit(projectDir);
+
+  await git.init(); // If not already a repo
+  await git.checkoutLocalBranch(branchName).catch(() => { });
+  await git.add(".");
+  await git.commit(message);
+  await git.push("origin", branchName).catch(() => {
+    console.log("🟡 First push, creating upstream...");
+    git.push(["--set-upstream", "origin", branchName]);
+  });
+
+  console.log(`🚀 Code pushed to branch ${branchName}`);
 }
