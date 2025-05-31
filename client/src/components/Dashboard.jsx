@@ -51,6 +51,7 @@ const JiraPipelineUI = () => {
           { jiraUrl: input },
           { withCredentials: true }
         );
+        console.log("response::::", response.data)
         // setResults(response.data);
         // setCurrentStep(null);
       } catch (err) {

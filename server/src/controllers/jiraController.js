@@ -1,5 +1,6 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { extractRequirementsWithLLM } from '../utils/openai.js';
 
 dotenv.config();
 /**
@@ -50,92 +51,92 @@ export async function fetchJiraTicketDetails(req, res) {
         console.log("apiUrl::::::::::::", apiUrl)
 
         // Fetch issue details
-        const response = await axios.get(apiUrl,{
+        const response = await axios.get(apiUrl, {
             // headers: {
             //     'Authorization': `Bearer ${accessToken}`,
             //     'Accept': 'application/json'
             //   }
-              headers: {
+            headers: {
                 'Authorization': `Basic ${Buffer.from(`${process.env.ATLASSIAN_EMAIL}:${process.env.ATLASSIAN_API_TOKEN}`).toString('base64')}`,
                 'Accept': 'application/json'
-              }
-    });
+            }
+        });
 
         const issueData = response.data;
 
         console.log("issueData::::::::::::::::::::::::", issueData)
         // Handle description formatting
-        let description = '';
-        if (typeof issueData.fields.description === 'string') {
-            description = issueData.fields.description;
-        } else if (issueData.fields.description?.content) {
-            description = issueData.fields.description.content
-                .map(c =>
-                    c.content?.map(cc => cc.text).join('') || ''
-                ).join('\n');
-        }
+        // let description = '';
+        // if (typeof issueData.fields.description === 'string') {
+        //     description = issueData.fields.description;
+        // } else if (issueData.fields.description?.content) {
+        //     description = issueData.fields.description.content
+        //         .map(c =>
+        //             c.content?.map(cc => cc.text).join('') || ''
+        //         ).join('\n');
+        // }
 
         // Final formatted result
-        const result = {
-            key: issueData.key,
-            title: issueData.fields.summary,
-            description,
-            
-            // User-related
-            assignee: issueData.fields.assignee?.displayName || null,
-            reporter: issueData.fields.reporter?.displayName || null,
-            creator: issueData.fields.creator?.displayName || null,
-          
-            // Status-related
-            status: issueData.fields.status?.name || '',
-            statusCategory: issueData.fields.status?.statusCategory?.name || '',
-          
-            // Project info
-            project: {
-              key: issueData.fields.project?.key,
-              name: issueData.fields.project?.name,
-              type: issueData.fields.project?.projectTypeKey,
-            },
-          
-            // Issue type
-            issueType: {
-              name: issueData.fields.issuetype?.name,
-              description: issueData.fields.issuetype?.description,
-              iconUrl: issueData.fields.issuetype?.iconUrl,
-            },
-          
-            // Priority
-            priority: issueData.fields.priority?.name || '',
-          
-            // Time tracking
-            timeTracking: {
-              originalEstimate: issueData.fields.timetracking?.originalEstimate || '0m',
-              remainingEstimate: issueData.fields.timetracking?.remainingEstimate || '0m',
-              timeSpent: issueData.fields.timetracking?.timeSpent || '0m',
-            },
-          
-            // Time
-            createdAt: issueData.fields.created,
-            updatedAt: issueData.fields.updated,
-            resolutionDate: issueData.fields.resolutiondate,
-          
-            // Misc
-            labels: issueData.fields.labels || [],
-            components: issueData.fields.components?.map(c => c.name) || [],
-            versions: issueData.fields.versions?.map(v => v.name) || [],
-            fixVersions: issueData.fields.fixVersions?.map(v => v.name) || [],
-            dueDate: issueData.fields.duedate,
-            environment: issueData.fields.environment || null,
-            watchers: issueData.fields.watches?.watchCount || 0,
-            isWatching: issueData.fields.watches?.isWatching || false,
-            votes: issueData.fields.votes?.votes || 0,
-            hasVoted: issueData.fields.votes?.hasVoted || false,
-          };
-          
+        // const result = {
+        //     key: issueData.key,
+        //     title: issueData.fields.summary,
+        //     description,
 
-        console.log("result:::::::::::",result)
+        //     // User-related
+        //     assignee: issueData.fields.assignee?.displayName || null,
+        //     reporter: issueData.fields.reporter?.displayName || null,
+        //     creator: issueData.fields.creator?.displayName || null,
 
-        return res.json(result);
+        //     // Status-related
+        //     status: issueData.fields.status?.name || '',
+        //     statusCategory: issueData.fields.status?.statusCategory?.name || '',
+
+        //     // Project info
+        //     project: {
+        //         key: issueData.fields.project?.key,
+        //         name: issueData.fields.project?.name,
+        //         type: issueData.fields.project?.projectTypeKey,
+        //     },
+
+        //     // Issue type
+        //     issueType: {
+        //         name: issueData.fields.issuetype?.name,
+        //         description: issueData.fields.issuetype?.description,
+        //         iconUrl: issueData.fields.issuetype?.iconUrl,
+        //     },
+
+        //     // Priority
+        //     priority: issueData.fields.priority?.name || '',
+
+        //     // Time tracking
+        //     timeTracking: {
+        //         originalEstimate: issueData.fields.timetracking?.originalEstimate || '0m',
+        //         remainingEstimate: issueData.fields.timetracking?.remainingEstimate || '0m',
+        //         timeSpent: issueData.fields.timetracking?.timeSpent || '0m',
+        //     },
+
+        //     // Time
+        //     createdAt: issueData.fields.created,
+        //     updatedAt: issueData.fields.updated,
+        //     resolutionDate: issueData.fields.resolutiondate,
+
+        //     // Misc
+        //     labels: issueData.fields.labels || [],
+        //     components: issueData.fields.components?.map(c => c.name) || [],
+        //     versions: issueData.fields.versions?.map(v => v.name) || [],
+        //     fixVersions: issueData.fields.fixVersions?.map(v => v.name) || [],
+        //     dueDate: issueData.fields.duedate,
+        //     environment: issueData.fields.environment || null,
+        //     watchers: issueData.fields.watches?.watchCount || 0,
+        //     isWatching: issueData.fields.watches?.isWatching || false,
+        //     votes: issueData.fields.votes?.votes || 0,
+        //     hasVoted: issueData.fields.votes?.hasVoted || false,
+        // };
+
+
+        // console.log("result:::::::::::", result)
+
+        return issueData;
     } catch (error) {
         console.error('Error fetching Jira ticket:', error);
 
@@ -147,5 +148,24 @@ export async function fetchJiraTicketDetails(req, res) {
         }
 
         return res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+export async function ticketDetails(req, res) {
+    try {
+        const ticket = await fetchJiraTicketDetails(req); // Your existing function
+
+        console.log("ticket:::::::::::::::::::", ticket)
+        // const { title, description, labels } = ticket;
+
+        const llmResult = await extractRequirementsWithLLM(ticket);
+
+        res.json({
+            ticket,
+            extracted: llmResult,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to process ticket' });
     }
 }
