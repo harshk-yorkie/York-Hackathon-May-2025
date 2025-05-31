@@ -1,12 +1,15 @@
-import { fetchWeatherData } from './api';
-import { compareCities, sortData } from './utils';
+import express from 'express';
+import { getWeatherData } from './api';
 
-async function main() {
-  const cities = ['London', 'Paris', 'New York'];
-  const weatherData = await fetchWeatherData(cities);
-  const sortedData = sortData(weatherData);
-  const comparisonTable = compareCities(sortedData);
-  console.log(comparisonTable);
-}
+const app = express();
+const port = process.env.PORT || 3000;
 
-main();
+app.get('/weather', async (req, res) => {
+  const cities = req.query.cities as string[];
+  const data = await getWeatherData(cities);
+  res.json(data);
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});

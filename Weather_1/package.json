@@ -1,7 +1,7 @@
 {
-  "name": "weather-comparison",
+  "name": "weather-comparison-table",
   "version": "1.0.0",
-  "description": "A comparison table for weather metrics of 3+ cities using OpenWeatherMap API data.",
+  "description": "A comparison table for viewing weather metrics for multiple cities using OpenWeatherMap API data.",
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/index.ts",
@@ -9,11 +9,14 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
-    "ts-node": "^10.2.1"
+    "express": "^4.17.1"
   },
   "devDependencies": {
-    "@types/jest": "^26.0.24",
-    "jest": "^27.2.0",
-    "typescript": "^4.4.2"
+    "@types/express": "^4.17.11",
+    "@types/jest": "^26.0.23",
+    "jest": "^27.0.6",
+    "supertest": "^6.1.3",
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5"
   }
 }
