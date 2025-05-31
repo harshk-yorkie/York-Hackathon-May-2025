@@ -158,11 +158,92 @@ app.get("/atlassian-verify", async (req, res) => {
     });
 
     res.send(`
-      <h1>Connected to Atlassian</h1>
-      <p>Project: ${projectName}</p>
-      <p>Issues found: ${issues.length}</p>
-      <p>Your issues are being processed...</p>
-      <p>Check the console for updates.</p>
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Atlassian Integration - Success</title>
+          <style>
+              body {
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                  margin: 0;
+                  padding: 0;
+                  min-height: 100vh;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  background: linear-gradient(135deg, #0052CC 0%, #00B8D9 100%);
+                  color: #172B4D;
+              }
+              .container {
+                  background: white;
+                  padding: 2rem;
+                  border-radius: 8px;
+                  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                  text-align: center;
+                  max-width: 400px;
+                  width: 90%;
+              }
+              h1 {
+                  margin: 0 0 1rem 0;
+                  color: #172B4D;
+              }
+              p {
+                  margin: 0 0 1rem 0;
+                  color: #6B778C;
+                  line-height: 1.5;
+              }
+              .logo {
+                  width: 48px;
+                  height: 48px;
+                  margin-bottom: 1rem;
+              }
+              .status {
+                  background: #E3FCEF;
+                  color: #006644;
+                  padding: 1rem;
+                  border-radius: 4px;
+                  margin: 1rem 0;
+                  font-weight: 500;
+              }
+              .project-info {
+                  background: #F4F5F7;
+                  padding: 1rem;
+                  border-radius: 4px;
+                  margin: 1rem 0;
+              }
+              .loading {
+                  display: inline-block;
+                  width: 20px;
+                  height: 20px;
+                  border: 2px solid #F4F5F7;
+                  border-radius: 50%;
+                  border-top-color: #0052CC;
+                  animation: spin 1s linear infinite;
+                  margin-left: 8px;
+                  vertical-align: middle;
+              }
+              @keyframes spin {
+                  to { transform: rotate(360deg); }
+              }
+          </style>
+      </head>
+      <body>
+          <div class="container">
+              <img src="https://wac-cdn.atlassian.com/assets/img/favicons/atlassian/favicon.png" alt="Atlassian Logo" class="logo">
+              <h1>Successfully Connected!</h1>
+              <div class="project-info">
+                  <p><strong>Project:</strong> ${projectName}</p>
+                  <p><strong>Issues Found:</strong> ${issues.length}</p>
+              </div>
+              <div class="status">
+                  <p>Your issues are being processed<span class="loading"></span></p>
+              </div>
+              <p>Check the console for detailed updates on the progress.</p>
+          </div>
+      </body>
+      </html>
     `);
   } catch (err) {
     res.status(500).send(err);
