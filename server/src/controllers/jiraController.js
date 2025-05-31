@@ -51,8 +51,12 @@ export async function fetchJiraTicketDetails(req, res) {
 
         // Fetch issue details
         const response = await axios.get(apiUrl,{
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
+            // headers: {
+            //     'Authorization': `Bearer ${accessToken}`,
+            //     'Accept': 'application/json'
+            //   }
+              headers: {
+                'Authorization': `Basic ${Buffer.from(`${process.env.ATLASSIAN_EMAIL}:${process.env.ATLASSIAN_API_TOKEN}`).toString('base64')}`,
                 'Accept': 'application/json'
               }
     });
@@ -76,14 +80,60 @@ export async function fetchJiraTicketDetails(req, res) {
             key: issueData.key,
             title: issueData.fields.summary,
             description,
-            labels: issueData.fields.labels || [],
-            status: issueData.fields.status?.name || '',
+            
+            // User-related
             assignee: issueData.fields.assignee?.displayName || null,
             reporter: issueData.fields.reporter?.displayName || null,
+            creator: issueData.fields.creator?.displayName || null,
+          
+            // Status-related
+            status: issueData.fields.status?.name || '',
+            statusCategory: issueData.fields.status?.statusCategory?.name || '',
+          
+            // Project info
+            project: {
+              key: issueData.fields.project?.key,
+              name: issueData.fields.project?.name,
+              type: issueData.fields.project?.projectTypeKey,
+            },
+          
+            // Issue type
+            issueType: {
+              name: issueData.fields.issuetype?.name,
+              description: issueData.fields.issuetype?.description,
+              iconUrl: issueData.fields.issuetype?.iconUrl,
+            },
+          
+            // Priority
             priority: issueData.fields.priority?.name || '',
+          
+            // Time tracking
+            timeTracking: {
+              originalEstimate: issueData.fields.timetracking?.originalEstimate || '0m',
+              remainingEstimate: issueData.fields.timetracking?.remainingEstimate || '0m',
+              timeSpent: issueData.fields.timetracking?.timeSpent || '0m',
+            },
+          
+            // Time
             createdAt: issueData.fields.created,
             updatedAt: issueData.fields.updated,
-        };
+            resolutionDate: issueData.fields.resolutiondate,
+          
+            // Misc
+            labels: issueData.fields.labels || [],
+            components: issueData.fields.components?.map(c => c.name) || [],
+            versions: issueData.fields.versions?.map(v => v.name) || [],
+            fixVersions: issueData.fields.fixVersions?.map(v => v.name) || [],
+            dueDate: issueData.fields.duedate,
+            environment: issueData.fields.environment || null,
+            watchers: issueData.fields.watches?.watchCount || 0,
+            isWatching: issueData.fields.watches?.isWatching || false,
+            votes: issueData.fields.votes?.votes || 0,
+            hasVoted: issueData.fields.votes?.hasVoted || false,
+          };
+          
+
+        console.log("result:::::::::::",result)
 
         return res.json(result);
     } catch (error) {
