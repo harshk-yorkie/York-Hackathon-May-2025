@@ -1,11 +1,1 @@
-export const fetchWeatherData = async () => {
-  // Fetch data from OpenWeatherMap's forecast endpoint
-}
-
-export const calculateMinMaxTemp = (data: any) => {
-  // Calculate min/max temps from 3-hour data
-}
-
-export const convertTemp = (temp: number, unit: string) => {
-  // Convert temperature between °C and °F
-}
+// Utility functions for fetching weather data, handling unit conversions, etc.

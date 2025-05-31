@@ -1,13 +1,19 @@
-# Weather App
+# Weather Widget
 
-This is a weather application with autocomplete city search feature. The application uses the OpenWeatherMap API to fetch weather data. The application also stores recent searches and loads them when the page is refreshed.
+This widget detects the user’s location (GPS/IP) and displays real-time weather data from OpenWeatherMap’s current API.
+
+## Features
+
+- Auto-fetches weather data using location access.
+- Displays temperature, humidity, wind speed, and weather icon.
+- Allows manual input if GPS/IP location fails.
+- Shows a loading state while fetching data.
+- Allows toggling units (°C/°F, km/h/mph) which persist via localStorage.
+- Displays animated weather icons.
+- Provides contextual tips based on the weather (e.g., "Rainy → Don't forget your umbrella!", "Sunny → High UV today, wear sunscreen!").
 
 ## Installation
 
-1. Clone the repository.
-2. Run `npm install` to install dependencies.
-3. Run `npm start` to start the server.
-4. Visit `http://localhost:3000` in your browser.
-```
-
-Note: The frontend part of the application is not included in this structure. This structure only includes the backend part of the application.
+1. Clone this repository.
+2. Run `npm install`.
+3. Open `public/index.html` in your browser.
