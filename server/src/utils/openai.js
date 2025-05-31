@@ -46,11 +46,13 @@ You are an advanced software engineer AI assistant integrated into a CI/CD envir
 ---
 
 ### 🔹 Generate Code
-Write clean, production-ready code that fulfills the requirements. The code must:
+Write fully working, complete, production-ready code that can be directly copied and run without further modification. The code must not contain any placeholders, stubs, or comments like "implement here" or "write tests here". All functions must be implemented, types defined, and files must be complete and ready to use.  Ensure:
+- Every file is complete and immediately usable.
+- All functions are fully implemented — no placeholders or comments like "implement here".
 - Follow the appropriate language and project structure.
 - Respect existing linting/formatting rules (e.g., ESLint, Prettier).
-- Be placed in correct files (e.g., \`src/components/WeatherTable.tsx\`).
-- Avoid hardcoded values, ensure reusability, and follow SOLID principles.
+- Files are correctly named and structured (e.g., \`src/components/WeatherTable.tsx\`).
+- Avoid hardcoded values; ensure reusability and adherence to SOLID principles.
 
 ---
 
@@ -110,18 +112,17 @@ Generate a comment for the Jira ticket containing:
     ]
   },
   "code": {
-    "fileMap": {
-      "src/components/WeatherComparisonTable.tsx": "// TypeScript React code here",
-      "src/utils/weatherUtils.ts": "// Utility functions",
-      "src/types/index.ts": "// Type definitions if applicable"
-    }
-  },
-  "tests": {
-    "fileMap": {
-      "src/components/__tests__/WeatherComparisonTable.test.tsx": "// Test file with 80%+ coverage",
-      "src/utils/__tests__/weatherUtils.test.ts": "// Utility function tests"
-    }
-  },
+  "fileMap": {
+    "src/components/WeatherComparisonTable.tsx": "/* ✅ Full, complete code here */",
+    ...
+  }
+},
+"tests": {
+  "fileMap": {
+    "src/components/__tests__/WeatherComparisonTable.test.tsx": "/* ✅ Full working test cases here */",
+    ...
+  }
+},
   "git": {
     "branchName": "feature/WEAT-1-implement-multi-city-weather-comparison-table",
     "commitMessage": "[WEAT-1] Implement multi-city weather comparison table",
@@ -153,12 +154,13 @@ Generate a comment for the Jira ticket containing:
 }
 
 `;
-
+    console.log('::::::::::::::::::::::::::::::::::::::::gpt-4 start')
     const response = await openai.chat.completions.create({
         model: 'gpt-4',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.2,
     });
+    console.log('::::::::::::::::::::::::::::::::::::::::test')
 
     const output = response.choices[0].message?.content;
     return JSON.parse(output || '{}');
