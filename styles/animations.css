@@ -1,0 +1,44 @@
+/* Spinner Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader { animation: spin 1s linear infinite; }
+
+/* Fade and pop for UI components */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  70% {
+    opacity: 0.72;
+    transform: translateY(-7px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.state, .weather-table, .input-section, .floating-action, .sparkline-cell {
+  animation: fadeInUp .9s cubic-bezier(.28,1.4,.32,1) both;
+}
+
+/* Button pulse on hover */
+button:focus, button:hover {
+  box-shadow: 0 2px 16px 4px #8b71f777;
+  filter: brightness(1.01);
+}
+
+/* Sparkline animation */
+@keyframes drawLine {
+    from { stroke-dashoffset: 44; }
+    to { stroke-dashoffset: 0; }
+}
+.sparkline-cell svg path {
+    stroke-dasharray: 44;
+    stroke-dashoffset: 44;
+    animation: drawLine 1.2s .33s cubic-bezier(.65,.01,.29,.99) forwards;
+}

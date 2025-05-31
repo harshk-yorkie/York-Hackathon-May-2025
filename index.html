@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Multi-City Weather Comparison</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/animations.css">
+    <link rel="icon" href="assets/weather.svg">
+</head>
+<body>
+    <div class="backdrop-gradient"></div>
+    <main class="container" aria-label="Weather Comparison Table">
+        <header>
+            <h1>Multi-City Weather Comparison</h1>
+            <p class="subtitle">Compare live weather data for multiple cities instantly</p>
+        </header>
+        <section class="input-section">
+            <form id="cityForm" autocomplete="off">
+                <label for="cityInput" class="sr-only">Enter cities</label>
+                <div class="city-fields" id="cityFields"></div>
+                <button type="button" id="addCityBtn" aria-label="Add City Input">+</button>
+                <button type="submit" class="primary">Compare Weather</button>
+            </form>
+        </section>
+
+        <section id="weatherResult">
+            <!-- Weather table rendered here -->
+        </section>
+
+        <section id="emptyState" class="centered state" hidden>
+            <p>Enter at least 3 cities to compare weather data!</p>
+        </section>
+    </main>
+
+    <div class="floating-action">
+        <button id="toggleDeltaBtn" title="Toggle Delta Mode" aria-pressed="false">
+            Δ Delta Mode
+        </button>
+    </div>
+
+    <footer>
+        <p>Powered by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> &amp; <a href="https://nominatim.openstreetmap.org/" target="_blank" rel="noopener">OpenStreetMap</a></p>
+        <span class="credit">Jira: WEAT-1 • <a href="https://github.com/harshk-yorkie/York-Hackathon-May-2025" target="_blank">GitHub Repo</a></span>
+    </footer>
+
+    <script src="scripts/utils.js"></script>
+    <script src="scripts/api.js"></script>
+    <script src="scripts/main.js"></script>
+</body>
+</html>
