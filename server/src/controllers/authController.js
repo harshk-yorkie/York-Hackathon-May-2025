@@ -9,7 +9,6 @@ const CLIENT_SECRET = process.env.ATLASSIAN_CLIENT_SECRET;
 const REDIRECT_URI = process.env.ATLASSIAN_REDIRECT_URI; // e.g., http://localhost:3000/api/auth/jira/callback
 
 // Step 1: Redirect user to Atlassian OAuth Consent Screen
-
 export const redirectToAtlassian = (req, res) => {
   const scopes = [
     'read:me',
@@ -18,20 +17,23 @@ export const redirectToAtlassian = (req, res) => {
     'offline_access',
   ];
 
-  const scopeStr = scopes.join(' '); // joins scopes with spaces
+  const scopeStr = scopes.join(' ');
 
-  console.log("CLIENT_ID:::", CLIENT_ID)
-  console.log("REDIRECT_URI:::", REDIRECT_URI)
+  const redirectBack = req.query.redirect || '/'; // path to redirect after login
+  const stateObj = { redirect: redirectBack };
+  const state = encodeURIComponent(JSON.stringify(stateObj)); // encode state safely
 
+  const authUrl = `https://auth.atlassian.com/authorize?audience=api.atlassian.com&client_id=${CLIENT_ID}&scope=${encodeURIComponent(
+    scopeStr
+  )}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}&response_type=code&prompt=consent`;
 
-  const authUrl = `https://auth.atlassian.com/authorize?audience=api.atlassian.com&client_id=${CLIENT_ID}&scope=${encodeURIComponent(scopeStr)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=random_state&response_type=code&prompt=consent`;
-
-  return res.redirect(authUrl);
+  console.log("redirect to atllasian auth::::::::::::::::::", authUrl)
+   res.redirect(authUrl);
 };
 
 // Step 2: Handle OAuth callback and exchange code for access token
 export const handleAtlassianCallback = async (req, res) => {
-  const code = req.query.code;
+  const code = req.query.code ;
 
   if (!code) {
     return res.status(400).json({ error: 'Authorization code is missing' });
@@ -48,14 +50,24 @@ export const handleAtlassianCallback = async (req, res) => {
 
     const { access_token, refresh_token, expires_in } = response.data;
 
-    // Store tokens securely (DB, session, etc.)
-    // For now, just return them
-    return res.status(200).json({
-      message: 'Successfully authenticated with Atlassian',
-      access_token,
-      refresh_token,
-      expires_in,
+    // Set access token cookie
+    res.cookie('jira_access_token', access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: expires_in * 1000,
     });
+
+    // Set refresh token cookie (valid for ~30 days)
+    res.cookie('jira_refresh_token', refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    // Redirect to your app's frontend/dashboard after successful login
+    return res.redirect('http://localhost:5173');
   } catch (err) {
     console.error('Token exchange failed:', err.response?.data || err.message);
     return res.status(500).json({ error: 'Token exchange failed' });

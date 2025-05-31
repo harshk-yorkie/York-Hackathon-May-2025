@@ -23,43 +23,44 @@ const JiraPipelineUI = () => {
     if (!input.trim()) return;
     console.log(input);
     
-    setIsProcessing(true);
-    setResults(null);
+    // setIsProcessing(true);
+    // setResults(null);
 
-    // Simulate the pipeline process
-    for (let i = 0; i < steps.length; i++) {
-      setCurrentStep(steps[i].id);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
+    // // Simulate the pipeline process
+    // for (let i = 0; i < steps.length; i++) {
+    //   setCurrentStep(steps[i].id);
+    //   await new Promise(resolve => setTimeout(resolve, 2000));
+    // }
 
-    // Mock results
-    setResults({
-      ticket: {
-        key: 'DEV-123',
-        title: 'Add user authentication endpoint',
-        status: 'In Progress → Code Review'
-      },
-      branch: 'feature/DEV-123-auth',
-      files: ['src/auth/service.js', 'tests/auth.test.js'],
-      coverage: '92%',
-      prUrl: 'https://github.com/your-org/repo/pull/456'
-    });
+    // // Mock results
+    // setResults({
+    //   ticket: {
+    //     key: 'DEV-123',
+    //     title: 'Add user authentication endpoint',
+    //     status: 'In Progress → Code Review'
+    //   },
+    //   branch: 'feature/DEV-123-auth',
+    //   files: ['src/auth/service.js', 'tests/auth.test.js'],
+    //   coverage: '92%',
+    //   prUrl: 'https://github.com/your-org/repo/pull/456'
+    // });
 
     try {
         const response = await axios.post(
-          "http://localhost:5000/api/jira/pipeline",
-          { ticketUrl: input },
+          "http://localhost:3000/api/jira/ticket-details",
+          { jiraUrl: input },
           { withCredentials: true }
         );
-        setResults(response.data);
-        setCurrentStep(null);
+        // setResults(response.data);
+        // setCurrentStep(null);
       } catch (err) {
-        setResults({
-          error: err.response?.data?.message || "Failed to process Jira ticket"
-        })
+        console.log("error while api call::", err)
+        // setResults({
+        //   error: err.response?.data?.message || "Failed to process Jira ticket"
+        // })
       }
-    setCurrentStep(null);
-    setIsProcessing(false);
+    // setCurrentStep(null);
+    // setIsProcessing(false);
   };
 
   const isValidJiraUrl = (url) => {

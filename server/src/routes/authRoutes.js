@@ -3,7 +3,7 @@ import { redirectToAtlassian, handleAtlassianCallback } from '../controllers/aut
 
 const router = Router();
 
-router.get('/auth/jira', redirectToAtlassian); // Step 1
-router.get('/auth/jira/callback', handleAtlassianCallback); // Step 2
+router.get('/jira', redirectToAtlassian); // Step 1
+router.get('/jira/callback', handleAtlassianCallback); // Step 2
 
 export default router;
