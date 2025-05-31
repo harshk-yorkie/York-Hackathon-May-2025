@@ -1,0 +1,12 @@
+{
+  "name": "jira-project",
+  "version": "1.0.0",
+  "description": "Multi-City Weather Comparison Table (WEAT-1)",
+  "scripts": {
+    "start": "live-server --port=3000 --open=/index.html",
+    "dev": "live-server --port=3000 --watch"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

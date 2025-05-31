@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Multi-City Weather Comparison Table">
+  <title>Weather Comparison | Team 11</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/animations.css">
+  <link rel="icon" type="image/svg+xml" href="assets/weather.svg">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1 class="gradient-text">Multi-City Weather Comparison</h1>
+      <form id="city-form" aria-label="City Selection Form">
+        <label for="cities-input" class="sr-only">City Names (comma separated, minimum 3)</label>
+        <input 
+          type="text" 
+          id="cities-input" 
+          name="cities" 
+          placeholder="Enter at least 3 city names (comma separated)" 
+          aria-required="true"
+          autocomplete="off"
+        />
+        <button type="submit" id="compare-btn">Compare</button>
+      </form>
+      <div id="form-error" class="form-error" aria-live="polite"></div>
+    </header>
+    <main>
+      <section id="loading" class="loading-section" hidden>
+        <div class="skeleton-table"></div>
+        <div class="spinner"></div>
+        <span>Fetching the latest weather data...</span>
+      </section>
+      <section id="weather-table-section">
+        <!-- Dynamic weather table is rendered here -->
+      </section>
+      <section id="api-error" class="api-error" hidden></section>
+    </main>
+    <footer>
+      <span>Developed for WEAT-1 • Team 11.</span>
+      <span><a href="https://open-meteo.com/" target="_blank">Powered by Open-Meteo</a></span>
+    </footer>
+  </div>
+  <script src="scripts/utils.js"></script>
+  <script src="scripts/api.js"></script>
+  <script src="scripts/main.js"></script>
+</body>
+</html>
