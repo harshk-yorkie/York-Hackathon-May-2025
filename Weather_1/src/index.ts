@@ -1,15 +1,10 @@
-import express from 'express';
-import { getWeatherData } from './api';
+import { fetchWeatherData } from './api';
 
-const app = express();
-const port = process.env.PORT || 3000;
+const cities = ['London', 'New York', 'Tokyo'];
 
-app.get('/weather', async (req, res) => {
-  const cities = req.query.cities as string[];
-  const data = await getWeatherData(cities);
-  res.json(data);
-});
+async function displayWeatherData() {
+  const weatherData = await Promise.all(cities.map(city => fetchWeatherData(city)));
+  // TODO: Implement display logic
+}
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+displayWeatherData();
