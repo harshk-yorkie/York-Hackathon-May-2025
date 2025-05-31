@@ -25,7 +25,7 @@ app.get("/", (_req, res) => {
   )}&redirect_uri=${encodeURIComponent(
     redirectUri
   )}&response_type=code&prompt=consent`;
-  
+
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -238,7 +238,7 @@ app.get("/atlassian-verify", async (req, res) => {
                   <p><strong>Issues Found:</strong> ${issues.length}</p>
               </div>
               <div class="status">
-                  <p>Your issues are being processed<span class="loading"></span></p>
+                  <p>Hang tight — we're automatically resolving issues in the background to get everything working smoothly</p>
               </div>
               <p>Check the console for detailed updates on the progress.</p>
           </div>
