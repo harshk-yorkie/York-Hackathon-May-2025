@@ -9,29 +9,29 @@ const CLIENT_SECRET = process.env.ATLASSIAN_CLIENT_SECRET;
 const REDIRECT_URI = process.env.ATLASSIAN_REDIRECT_URI; // e.g., http://localhost:3000/api/auth/jira/callback
 
 // Step 1: Redirect user to Atlassian OAuth Consent Screen
+
 export const redirectToAtlassian = (req, res) => {
   const scopes = [
     'read:me',
     'read:jira-work',
     'read:account',
     'offline_access',
-    // Add more scopes if needed
   ];
 
-  const authUrl = `https://auth.atlassian.com/authorize?` +
-    `audience=api.atlassian.com` +
-    `&client_id=${CLIENT_ID}` +
-    `&scope=${encodeURIComponent(scopes.join(' '))}` +
-    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-    `&response_type=code` +
-    `&prompt=consent`;
+  const scopeStr = scopes.join(' '); // joins scopes with spaces
+
+  console.log("CLIENT_ID:::", CLIENT_ID)
+  console.log("REDIRECT_URI:::", REDIRECT_URI)
+
+
+  const authUrl = `https://auth.atlassian.com/authorize?audience=api.atlassian.com&client_id=${CLIENT_ID}&scope=${encodeURIComponent(scopeStr)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=random_state&response_type=code&prompt=consent`;
 
   return res.redirect(authUrl);
 };
 
 // Step 2: Handle OAuth callback and exchange code for access token
 export const handleAtlassianCallback = async (req, res) => {
-  const code = req.query.code ;
+  const code = req.query.code;
 
   if (!code) {
     return res.status(400).json({ error: 'Authorization code is missing' });
